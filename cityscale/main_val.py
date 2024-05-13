@@ -13,6 +13,7 @@ def create_directory(dir,delete=False):
         shutil.rmtree(dir)
     os.makedirs(dir,exist_ok=True)
 
+# 顶点类（坐标x,y; id; neighbors列表）
 class Vertex():
     def __init__(self,v,id):
         self.x = v[0]
@@ -20,12 +21,14 @@ class Vertex():
         self.id = id
         self.neighbors = []
 
+# 边类（源顶点src; 目标顶点dst; id）
 class Edge():
     def __init__(self,src,dst,id):
         self.src = src
         self.dst = dst
         self.id = id
 
+# 图类（顶点字典vertices; 边字典edges; 顶点数目vertex_num; 边数目edge_num）
 class Graph():
     def __init__(self):
         self.vertices = {}
@@ -38,11 +41,14 @@ class Graph():
             return self.vertices[f'{v_coord[0]}_{v_coord[1]}']
         return 
 
+    # 查找边
     def find_e(self,v1,v2):
         if f'{v1.id}_{v2.id}' in self.edges:
             return True
         return None
 
+    # 添加边
+    # edge是一个包含两个顶点坐标的列表
     def add(self,edge):
         v1_coord = edge[0]
         v2_coord = edge[1]
@@ -67,10 +73,13 @@ class Graph():
 
 def valid(args, RNGDetNet):
     # ==============
+    # 将模型放到GPU上
     RNGDetNet.cuda()
+    # 将模型设置为评估模式
     RNGDetNet.eval()
 
-    # ============== 
+    # ==============
+    # 创建保存目录
     args.agent_savedir = f'{args.savedir}/valid'
     create_directory(f'./{args.savedir}/valid/graph',delete=True)
     create_directory(f'./{args.savedir}/valid/segmentation',delete=True)
@@ -80,18 +89,22 @@ def valid(args, RNGDetNet):
     create_directory(f'./{args.savedir}/valid/json',delete=True)
 
     # =====================================
+    # 初始化sigmoid激活函数
     sigmoid = nn.Sigmoid()
     
-    # tile list
+    # tile list，指的是数据集划分文件中的valid部分
+    # 读取数据集划分文件
     with open('./dataset/data_split.json','r') as jf:
         tile_list = json.load(jf)['valid'][:2]
     for i, tile_name in enumerate(tile_list):
         print('====================================================')
         print(f'{i}/{len(tile_list)}: Start processing {tile_name}')
         # initialize an agent
+        # 代码遍历每个tile，为每个tile_name初始化一个agent
         print(f'STEP 1: Initialize agent and extract candidate initial vertices...')
         agent = Agent(args,RNGDetNet,tile_name)
         print(f'STEP 2: Interative graph detection...')
+        # 代码进入循环，直到agent.finish_current_image为True（agent处理完当前图像）或者agent.step_counter大于10000
         while not agent.finish_current_image:
             agent.step_counter += 1
             # crop ROI
